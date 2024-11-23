@@ -8,6 +8,11 @@ import (
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
 	"go.viam.com/utils/rpc"
+
+	"periph.io/x/conn/v3/i2c"
+	"periph.io/x/conn/v3/i2c/i2creg"
+	"periph.io/x/devices/v3/ht16k33"
+	"periph.io/x/host/v3"
 )
 
 var (
@@ -49,6 +54,9 @@ type ht16k33DisplaySeg14X4 struct {
 	cancelCtx  context.Context
 	cancelFunc func()
 
+	bus     i2c.BusCloser
+	display *ht16k33.Display
+
 	/* Uncomment this if your model does not need to reconfigure. */
 	// resource.TriviallyReconfigurable
 
@@ -81,8 +89,25 @@ func (s *ht16k33DisplaySeg14X4) Name() resource.Name {
 }
 
 func (s *ht16k33DisplaySeg14X4) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
-	// Put reconfigure code here
-	return errUnimplemented
+	if s.display == nil { // TODO actually reconfigure?
+		if _, err := host.Init(); err != nil {
+			return err
+		}
+
+		bus, err := i2creg.Open("")
+		if err != nil {
+			return err
+		}
+		s.bus = bus
+
+		display, err := ht16k33.NewAlphaNumericDisplay(bus, 0x70) // TODO
+		if err != nil {
+			return err
+		}
+		s.display = display
+	}
+
+	return nil
 }
 
 func (s *ht16k33DisplaySeg14X4) NewClientFromConn(ctx context.Context, conn rpc.ClientConn, remoteName string, name resource.Name, logger logging.Logger) (resource.Resource, error) {
@@ -90,11 +115,20 @@ func (s *ht16k33DisplaySeg14X4) NewClientFromConn(ctx context.Context, conn rpc.
 }
 
 func (s *ht16k33DisplaySeg14X4) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
-	panic("not implemented")
+	print, ok := cmd["print"]
+	if ok {
+		s.display.WriteString(print.(string))
+		return cmd, nil
+	}
+
+	return nil, nil
 }
 
 func (s *ht16k33DisplaySeg14X4) Close(context.Context) error {
-	// Put close code here
+	if s.bus != nil {
+		s.bus.Close()
+	}
+
 	s.cancelFunc()
 	return nil
 }

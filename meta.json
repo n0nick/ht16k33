@@ -1,8 +1,8 @@
 {
   "$schema": "https://dl.viam.dev/module.schema.json",
-  "module_id": ":ht16k33-display",
+  "module_id": "1c614556-2ff9-4234-9a94-d59b0a6d3378:ht16k33-display",
   "visibility": "private",
-  "url": "",
+  "url": "https://github.com/n0nick/ht16k33-display",
   "description": "Modular generic component: seg_14_x_4",
   "models": [
     {
