@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"errors"
 
 	"go.viam.com/rdk/components/generic"
 	"go.viam.com/rdk/logging"
@@ -16,8 +15,8 @@ import (
 )
 
 var (
-	Seg14X4          = resource.NewModel("1c614556-2ff9-4234-9a94-d59b0a6d3378", "ht16k33-display", "seg_14_x_4")
-	errUnimplemented = errors.New("unimplemented")
+	Seg14X4 = resource.NewModel("n0nick", "ht16k33-display", "seg_14_x_4")
+	// errUnimplemented = errors.New("unimplemented")
 )
 
 func init() {
@@ -81,6 +80,8 @@ func newHt16k33DisplaySeg14X4(ctx context.Context, deps resource.Dependencies, r
 		cancelCtx:  cancelCtx,
 		cancelFunc: cancelFunc,
 	}
+
+	s.initDisplay()
 	return s, nil
 }
 
@@ -89,25 +90,32 @@ func (s *ht16k33DisplaySeg14X4) Name() resource.Name {
 }
 
 func (s *ht16k33DisplaySeg14X4) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
-	if s.display == nil { // TODO actually reconfigure?
-		if _, err := host.Init(); err != nil {
-			return err
-		}
-
-		bus, err := i2creg.Open("")
-		if err != nil {
-			return err
-		}
-		s.bus = bus
-
-		display, err := ht16k33.NewAlphaNumericDisplay(bus, 0x70) // TODO
-		if err != nil {
-			return err
-		}
-		s.display = display
+	if s.display == nil {
+		s.initDisplay()
 	}
 
 	return nil
+}
+
+func (s *ht16k33DisplaySeg14X4) initDisplay() error {
+	if _, err := host.Init(); err != nil {
+		return err
+	}
+
+	bus, err := i2creg.Open("")
+	if err != nil {
+		return err
+	}
+	s.bus = bus
+
+	display, err := ht16k33.NewAlphaNumericDisplay(bus, 0x70) // TODO from config
+	if err != nil {
+		return err
+	}
+
+	s.display = display
+
+	return display.Halt()
 }
 
 func (s *ht16k33DisplaySeg14X4) NewClientFromConn(ctx context.Context, conn rpc.ClientConn, remoteName string, name resource.Name, logger logging.Logger) (resource.Resource, error) {
@@ -115,6 +123,10 @@ func (s *ht16k33DisplaySeg14X4) NewClientFromConn(ctx context.Context, conn rpc.
 }
 
 func (s *ht16k33DisplaySeg14X4) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
+	if s.display == nil {
+		return map[string]interface{}{"error": "uninitialized"}, nil
+	}
+
 	print, ok := cmd["print"]
 	if ok {
 		s.display.WriteString(print.(string))
