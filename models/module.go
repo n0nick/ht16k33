@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	Seg14X4          = resource.NewModel("", "ht16k33-display", "seg_14_x_4")
+	Seg14X4          = resource.NewModel("1c614556-2ff9-4234-9a94-d59b0a6d3378", "ht16k33-display", "seg_14_x_4")
 	errUnimplemented = errors.New("unimplemented")
 )
 

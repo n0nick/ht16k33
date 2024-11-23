@@ -1,7 +1,7 @@
 BIN_OUTPUT_PATH = bin
 TOOL_BIN = bin/gotools/$(shell uname -s)-$(shell uname -m)
 UNAME_S ?= $(shell uname -s)
-GOPATH = $(HOME)/go/bin
+GOPATH = $(HOME)/dev/go/bin
 export PATH := ${PATH}:$(GOPATH) 
 
 build: format update-rdk
