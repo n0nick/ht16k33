@@ -127,13 +127,19 @@ func (s *ht16k33DisplaySeg14X4) DoCommand(ctx context.Context, cmd map[string]in
 		return map[string]interface{}{"error": "uninitialized"}, nil
 	}
 
-	print, ok := cmd["print"]
-	if ok {
-		s.display.WriteString(print.(string))
-		return cmd, nil
+	for key, value := range cmd {
+		switch key {
+		case "print":
+			s.display.WriteString(value.(string))
+			callOnSubstrings(value.(string), 4, func(st string) { s.display.WriteString(st) })
+		default:
+			return map[string]interface{}{"error": "unknown command"}, nil
+		}
+
+		break // support 1 command at a time
 	}
 
-	return nil, nil
+	return cmd, nil
 }
 
 func (s *ht16k33DisplaySeg14X4) Close(context.Context) error {
@@ -143,4 +149,17 @@ func (s *ht16k33DisplaySeg14X4) Close(context.Context) error {
 
 	s.cancelFunc()
 	return nil
+}
+
+// callOnSubstrings calls the function `f` on each n-length substring of `st`, rotating one character at a time.
+func callOnSubstrings(st string, n int, f func(string)) {
+	// Iterate through the string one character at a time
+	for i := 0; i < len(st); i++ {
+		// Get the substring of length `n` starting from index `i`
+		end := i + n
+		if end > len(st) {
+			break // Stop if the substring exceeds the string length
+		}
+		f(st[i:end])
+	}
 }
