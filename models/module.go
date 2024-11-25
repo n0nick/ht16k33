@@ -107,7 +107,6 @@ func (s *ht16k33DisplaySeg14X4) initDisplay() error {
 	}
 
 	s.display = display
-
 	return display.Halt()
 }
 
@@ -128,6 +127,8 @@ func (s *ht16k33DisplaySeg14X4) DoCommand(ctx context.Context, cmd map[string]in
 				s.display.WriteString(st)
 				time.Sleep(250 * time.Millisecond)
 			})
+		case "clear":
+			s.display.Halt()
 		default:
 			return map[string]interface{}{"error": "unknown command"}, nil
 		}
