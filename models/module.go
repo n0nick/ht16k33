@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"time"
 
 	"go.viam.com/rdk/components/generic"
 	"go.viam.com/rdk/logging"
@@ -55,14 +56,6 @@ type ht16k33DisplaySeg14X4 struct {
 
 	bus     i2c.BusCloser
 	display *ht16k33.Display
-
-	/* Uncomment this if your model does not need to reconfigure. */
-	// resource.TriviallyReconfigurable
-
-	// Uncomment this if the model does not have any goroutines that
-	// need to be shut down while closing.
-	// resource.TriviallyCloseable
-
 }
 
 func newHt16k33DisplaySeg14X4(ctx context.Context, deps resource.Dependencies, rawConf resource.Config, logger logging.Logger) (resource.Resource, error) {
@@ -131,7 +124,10 @@ func (s *ht16k33DisplaySeg14X4) DoCommand(ctx context.Context, cmd map[string]in
 		switch key {
 		case "print":
 			s.display.WriteString(value.(string))
-			callOnSubstrings(value.(string), 4, func(st string) { s.display.WriteString(st) })
+			callOnSubstrings(value.(string), 4, func(st string) {
+				s.display.WriteString(st)
+				time.Sleep(250 * time.Millisecond)
+			})
 		default:
 			return map[string]interface{}{"error": "unknown command"}, nil
 		}
