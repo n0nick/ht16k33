@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"go.viam.com/rdk/components/generic"
@@ -29,15 +30,8 @@ func init() {
 }
 
 type Config struct {
-	// Put config attributes here
-
-	/* if your model  does not need a config,
-	   replace *Config in the init function with resource.NoNativeConfig */
-
-	/* Uncomment this if your model does not need to be validated
-	   and has no implicit dependecies. */
-	// resource.TriviallyValidateConfig
-
+	// I2C address to use for connecting to HT16K33 display.
+	Address string `json:"address,omitempty"`
 }
 
 func (cfg *Config) Validate(path string) ([]string, error) {
@@ -83,7 +77,15 @@ func (s *ht16k33DisplaySeg14X4) Name() resource.Name {
 }
 
 func (s *ht16k33DisplaySeg14X4) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
-	if s.display == nil {
+	cfg, err := resource.NativeConfig[*Config](conf)
+	if err != nil {
+		return err
+	}
+
+	if cfg.Address != s.cfg.Address {
+		if s.display != nil {
+			s.display.Halt()
+		}
 		s.initDisplay()
 	}
 
@@ -91,6 +93,8 @@ func (s *ht16k33DisplaySeg14X4) Reconfigure(ctx context.Context, deps resource.D
 }
 
 func (s *ht16k33DisplaySeg14X4) initDisplay() error {
+	s.logger.Info("Initializing HT16K33 display.")
+
 	if _, err := host.Init(); err != nil {
 		return err
 	}
@@ -101,7 +105,17 @@ func (s *ht16k33DisplaySeg14X4) initDisplay() error {
 	}
 	s.bus = bus
 
-	display, err := ht16k33.NewAlphaNumericDisplay(bus, 0x70) // TODO from config
+	address := uint16(0x70)
+	if s.cfg.Address != "" {
+		addressParsed, err := strconv.ParseUint(s.cfg.Address, 10, 16)
+		if err != nil {
+			return err
+		}
+		address = uint16(addressParsed)
+		s.logger.Debugf("Will use custom address %s", address)
+	}
+
+	display, err := ht16k33.NewAlphaNumericDisplay(bus, address)
 	if err != nil {
 		return err
 	}
@@ -115,6 +129,8 @@ func (s *ht16k33DisplaySeg14X4) NewClientFromConn(ctx context.Context, conn rpc.
 }
 
 func (s *ht16k33DisplaySeg14X4) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
+	s.logger.Debugf("Received command: %v", cmd)
+
 	if s.display == nil {
 		return map[string]interface{}{"error": "uninitialized"}, nil
 	}
@@ -122,7 +138,6 @@ func (s *ht16k33DisplaySeg14X4) DoCommand(ctx context.Context, cmd map[string]in
 	for key, value := range cmd {
 		switch key {
 		case "print":
-			s.display.WriteString(value.(string))
 			callOnSubstrings(value.(string), 4, func(st string) {
 				s.display.WriteString(st)
 				time.Sleep(250 * time.Millisecond)
