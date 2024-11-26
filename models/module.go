@@ -18,7 +18,10 @@ import (
 
 var (
 	Seg14X4 = resource.NewModel("n0nick", "ht16k33-display", "seg_14_x_4")
-	// errUnimplemented = errors.New("unimplemented")
+)
+
+const (
+	wait = 250 * time.Millisecond // default wait between animation frames
 )
 
 func init() {
@@ -32,6 +35,8 @@ func init() {
 type Config struct {
 	// I2C address to use for connecting to HT16K33 display.
 	Address string `json:"address,omitempty"`
+	// Whether to skip intro animation
+	SkipIntro bool `json:"skip_intro,omitempty"`
 }
 
 func (cfg *Config) Validate(path string) ([]string, error) {
@@ -71,6 +76,11 @@ func newHt16k33DisplaySeg14X4(ctx context.Context, deps resource.Dependencies, r
 	err = s.initDisplay()
 	if err != nil {
 		return nil, err
+	}
+
+	// a little intro animation
+	if !s.cfg.SkipIntro {
+		s.animateIntro()
 	}
 
 	return s, nil
@@ -148,7 +158,7 @@ func (s *ht16k33DisplaySeg14X4) DoCommand(ctx context.Context, cmd map[string]in
 		case "print":
 			callOnSubstrings(value.(string), 4, func(st string) {
 				s.display.WriteString(st)
-				time.Sleep(250 * time.Millisecond)
+				time.Sleep(wait)
 			})
 		case "clear":
 			s.display.Halt()
@@ -169,6 +179,14 @@ func (s *ht16k33DisplaySeg14X4) Close(context.Context) error {
 
 	s.cancelFunc()
 	return nil
+}
+
+func (s *ht16k33DisplaySeg14X4) animateIntro() {
+	for _, f := range []string{"   *", "  * ", " *  ", "*   "} {
+		s.display.WriteString(f)
+		time.Sleep(wait)
+	}
+	s.display.Halt()
 }
 
 // callOnSubstrings calls the function `f` on each n-length substring of `st`, rotating one character at a time.
