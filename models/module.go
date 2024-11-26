@@ -68,7 +68,11 @@ func newHt16k33DisplaySeg14X4(ctx context.Context, deps resource.Dependencies, r
 		cancelFunc: cancelFunc,
 	}
 
-	s.initDisplay()
+	err = s.initDisplay()
+	if err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
@@ -86,7 +90,11 @@ func (s *ht16k33DisplaySeg14X4) Reconfigure(ctx context.Context, deps resource.D
 		if s.display != nil {
 			s.display.Halt()
 		}
-		s.initDisplay()
+
+		err = s.initDisplay()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
