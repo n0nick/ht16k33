@@ -156,12 +156,21 @@ func (s *ht16k33DisplaySeg14X4) DoCommand(ctx context.Context, cmd map[string]in
 	for key, value := range cmd {
 		switch key {
 		case "print":
-			callOnSubstrings(value.(string), 4, func(st string) {
-				s.display.WriteString(st)
+			err := callOnSubstrings(value.(string), 4, func(st string) error {
+				if _, err := s.display.WriteString(st); err != nil {
+					return err
+				}
+
 				time.Sleep(wait)
+				return nil
 			})
+			if err != nil {
+				return map[string]interface{}{"error": "error printing"}, err
+			}
 		case "clear":
-			s.display.Halt()
+			if err := s.display.Halt(); err != nil {
+				return map[string]interface{}{"error": "error clearing"}, err
+			}
 		default:
 			return map[string]interface{}{"error": "unknown command"}, nil
 		}
@@ -190,7 +199,7 @@ func (s *ht16k33DisplaySeg14X4) animateIntro() {
 }
 
 // callOnSubstrings calls the function `f` on each n-length substring of `st`, rotating one character at a time.
-func callOnSubstrings(st string, n int, f func(string)) {
+func callOnSubstrings(st string, n int, f func(string) error) error {
 	if len(st) < n {
 		return f(st)
 	}
@@ -202,6 +211,10 @@ func callOnSubstrings(st string, n int, f func(string)) {
 		if end > len(st) {
 			break // Stop if the substring exceeds the string length
 		}
-		f(st[i:end])
+		if err := f(st[i:end]); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
