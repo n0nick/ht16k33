@@ -191,6 +191,10 @@ func (s *ht16k33DisplaySeg14X4) animateIntro() {
 
 // callOnSubstrings calls the function `f` on each n-length substring of `st`, rotating one character at a time.
 func callOnSubstrings(st string, n int, f func(string)) {
+	if len(st) < n {
+		return f(st)
+	}
+
 	// Iterate through the string one character at a time
 	for i := 0; i < len(st); i++ {
 		// Get the substring of length `n` starting from index `i`
