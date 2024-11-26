@@ -115,7 +115,7 @@ func (s *ht16k33DisplaySeg14X4) initDisplay() error {
 
 	address := uint16(0x70)
 	if s.cfg.Address != "" {
-		addressParsed, err := strconv.ParseUint(s.cfg.Address, 10, 16)
+		addressParsed, err := strconv.ParseUint(s.cfg.Address, 0, 16)
 		if err != nil {
 			return err
 		}
